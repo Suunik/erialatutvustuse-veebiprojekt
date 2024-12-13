@@ -1,0 +1,24 @@
+stages:
+  - deploy
+
+deploy:
+  stage: deploy
+  only:
+    - main # Run only on the 'main' branch
+  before_script:
+    # Create the private key file from the variable
+    - mkdir -p /root/.ssh/
+    - echo "$SSH_KEY" > ~/.ssh/id_rsa
+    - chmod 600 ~/.ssh/id_rsa # Set proper permissions for the key
+    # Add the host to known_hosts to prevent verification prompts
+    - ssh-keyscan -H $SSH_HOST >> ~/.ssh/known_hosts
+  script:
+    # Run deployment commands via SSH
+    - ssh ubuntu@$SSH_HOST << 'EOF'
+        cd /srv/protodude/
+        git restore .
+        git pull
+        docker compose -f prod_docker-compose.yml up -d --build
+      EOF
+  variables:
+    GIT_STRATEGY: none # Prevent unnecessary repo cloning
